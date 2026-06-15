@@ -1,0 +1,8 @@
+transformers[torch]
+datasets
+peft
+accelerate
+sentencepiece
+bitsandbytes
+protobuf
+scipy

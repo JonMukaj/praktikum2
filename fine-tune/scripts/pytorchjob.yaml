@@ -1,0 +1,329 @@
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: {{ .Values.metadata.name }}-pytorchjob
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - command:
+                - torchrun
+                - '--nproc_per_node=1'
+                - /workspace/scripts/finetune.py
+                - '--model_name_or_path'
+                - BEE-spoke-data/smol_llama-101M-GQA
+                - '--dataset_name'
+                - medalpaca/medical_meadow_medical_flashcards
+                - '--dataset_cache_directory'
+                - /tmp/hf_dataset_cache
+                - '--train_file'
+                - ''
+                - '--dataset_concatenation'
+                - 'true'
+                - '--prompt_with_input'
+                - >-
+                  Below is an instruction that describes a task, paired with an
+                  input that provides further context. Write a response that
+                  appropriately completes the request.
+                - '--prompt_without_input'
+                - >-
+                  Below is an instruction that describes a task. Write a
+                  response that appropriately completes the request.
+                - '--per_device_train_batch_size'
+                - '8'
+                - '--per_device_eval_batch_size'
+                - '8'
+                - '--gradient_accumulation_steps'
+                - '1'
+                - '--learning_rate'
+                - '0.0002'
+                - '--num_train_epochs'
+                - '1'
+                - '--max_steps'
+                - '-1'
+                - '--logging_steps'
+                - '10'
+                - '--save_total_limit'
+                - '2'
+                - '--output_dir'
+                - /tmp/output/saved_model
+                - '--validation_split_percentage'
+                - '0.2'
+                - '--log_level'
+                - info
+                - '--save_strategy'
+                - epoch
+                - '--ddp_find_unused_parameters'
+                - 'false'
+                - '--ddp_backend'
+                - gloo
+                - '--use_fast_tokenizer'
+                - 'false'
+                - '--use_lora'
+                - 'true'
+                - '--lora_rank'
+                - '8'
+                - '--lora_alpha'
+                - '16'
+                - '--lora_dropout'
+                - '0.1'
+                - '--lora_target_modules'
+                - q_proj vproj
+                - '--use_cpu'
+                - 'true'
+                - '--overwrite_output_dir'
+                - 'true'
+                - '--do_train'
+                - 'true'
+                - '--do_eval'
+                - 'true'
+                - '--bf16'
+                - 'true'
+                - '--use_ipex'
+                - 'true'
+                - '--do_benchmark'
+                - 'false'
+                - '--benchmark_warmup'
+                - '30'
+                - '--benchmark_iterations'
+                - '300'
+                - '--benchmark_cores_per_instance'
+                - '-1'
+                - '--benchmark_num_instances'
+                - '1'
+                - '--do_quantize'
+                - 'false'
+                - '--peft_model_dir'
+                - /tmp/output/saved_model
+                - '--quantize_output_dir'
+                - /tmp/output/quantized_model
+                - '--woq_bits'
+                - '8'
+                - '--woq_group_size'
+                - '-1'
+                - '--woq_scheme'
+                - sym
+                - '--woq_algo'
+                - RTN
+              env:
+                - name: HF_HUB_DISABLE_XET
+                  value: "1"
+                - name: NCCL_SOCKET_IFNAME
+                  value: eth0
+                - name: LD_PRELOAD
+                  value: >-
+                    /usr/lib/x86_64-linux-gnu/libtcmalloc.so.4.5.9:/usr/local/lib/libiomp5.so
+                - name: TRANSFORMERS_CACHE
+                  value: /tmp/transformers_cache
+                - name: HF_DATASETS_CACHE
+                  value: /tmp/hf_dataset_cache
+                - name: HF_HOME
+                  value: /tmp/home
+                - name: LOGLEVEL
+                  value: INFO
+                # - name: CCL_WORKER_COUNT
+                #   value: '1'
+              image: intel/ai-workflows:torch-2.2.0-huggingface-multinode-py3.10
+              imagePullPolicy: IfNotPresent
+              name: pytorch
+              resources:
+                limits:
+                  cpu: 22
+                  memory: 40Gi
+                requests:
+                  cpu: 22
+                  memory: 40Gi
+              volumeMounts:
+                - mountPath: /tmp
+                  name: output-dir
+                - mountPath: /dev/shm
+                  name: dshm
+                - mountPath: /tmp/home
+                  name: secret-volume
+                  readOnly: true
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 0
+            runAsGroup: 0
+            runAsUser: 0
+          tolerations:
+            - effect: NoSchedule
+              key: role
+              operator: Equal
+              value: worker
+          volumes:
+            - name: output-dir
+              persistentVolumeClaim:
+                claimName: medical-meadow-pvc
+            - emptyDir:
+                medium: Memory
+              name: dshm
+            - name: secret-volume
+              secret:
+                secretName: medical-meadow-secret
+    Worker:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - command:
+                - torchrun
+                - '--nproc_per_node=1'
+                - /workspace/scripts/finetune.py
+                - '--model_name_or_path'
+                - BEE-spoke-data/smol_llama-101M-GQA
+                - '--dataset_name'
+                - medalpaca/medical_meadow_medical_flashcards
+                - '--dataset_cache_directory'
+                - /tmp/hf_dataset_cache
+                - '--train_file'
+                - ''
+                - '--dataset_concatenation'
+                - 'true'
+                - '--prompt_with_input'
+                - >-
+                  Below is an instruction that describes a task, paired with an
+                  input that provides further context. Write a response that
+                  appropriately completes the request.
+                - '--prompt_without_input'
+                - >-
+                  Below is an instruction that describes a task. Write a
+                  response that appropriately completes the request.
+                - '--per_device_train_batch_size'
+                - '8'
+                - '--per_device_eval_batch_size'
+                - '8'
+                - '--gradient_accumulation_steps'
+                - '1'
+                - '--learning_rate'
+                - '0.0002'
+                - '--num_train_epochs'
+                - '1'
+                - '--max_steps'
+                - '-1'
+                - '--logging_steps'
+                - '10'
+                - '--save_total_limit'
+                - '2'
+                - '--output_dir'
+                - /tmp/output/saved_model
+                - '--validation_split_percentage'
+                - '0.2'
+                - '--log_level'
+                - info
+                - '--save_strategy'
+                - epoch
+                - '--ddp_find_unused_parameters'
+                - 'false'
+                - '--ddp_backend'
+                - gloo
+                - '--use_fast_tokenizer'
+                - 'false'
+                - '--use_lora'
+                - 'true'
+                - '--lora_rank'
+                - '8'
+                - '--lora_alpha'
+                - '16'
+                - '--lora_dropout'
+                - '0.1'
+                - '--lora_target_modules'
+                - q_proj vproj
+                - '--use_cpu'
+                - 'true'
+                - '--overwrite_output_dir'
+                - 'true'
+                - '--do_train'
+                - 'true'
+                - '--do_eval'
+                - 'true'
+                - '--bf16'
+                - 'true'
+                - '--use_ipex'
+                - 'true'
+                - '--do_benchmark'
+                - 'false'
+                - '--benchmark_warmup'
+                - '30'
+                - '--benchmark_iterations'
+                - '300'
+                - '--benchmark_cores_per_instance'
+                - '-1'
+                - '--benchmark_num_instances'
+                - '1'
+                - '--do_quantize'
+                - 'false'
+                - '--peft_model_dir'
+                - /tmp/output/saved_model
+                - '--quantize_output_dir'
+                - /tmp/output/quantized_model
+                - '--woq_bits'
+                - '8'
+                - '--woq_group_size'
+                - '-1'
+                - '--woq_scheme'
+                - sym
+                - '--woq_algo'
+                - RTN
+              env:
+                - name: HF_HUB_DISABLE_XET
+                  value: "1"
+                - name: NCCL_SOCKET_IFNAME
+                  value: eth0
+                - name: LD_PRELOAD
+                  value: >-
+                    /usr/lib/x86_64-linux-gnu/libtcmalloc.so.4.5.9:/usr/local/lib/libiomp5.so
+                - name: TRANSFORMERS_CACHE
+                  value: /tmp/transformers_cache
+                - name: HF_DATASETS_CACHE
+                  value: /tmp/hf_dataset_cache
+                - name: HF_HOME
+                  value: /tmp/home
+                - name: LOGLEVEL
+                  value: INFO
+                # - name: CCL_WORKER_COUNT
+                #   value: '1'
+              image: intel/ai-workflows:torch-2.2.0-huggingface-multinode-py3.10
+              imagePullPolicy: IfNotPresent
+              name: pytorch
+              resources:
+                limits:
+                  cpu: 22
+                  memory: 40Gi
+                requests:
+                  cpu: 22
+                  memory: 40Gi
+              volumeMounts:
+                - mountPath: /tmp
+                  name: output-dir
+                - mountPath: /dev/shm
+                  name: dshm
+                - mountPath: /tmp/home
+                  name: secret-volume
+                  readOnly: true
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 0
+            runAsGroup: 0
+            runAsUser: 0
+          tolerations:
+            - effect: NoSchedule
+              key: role
+              operator: Equal
+              value: worker
+          volumes:
+            - name: output-dir
+              persistentVolumeClaim:
+                claimName: medical-meadow-pvc
+            - emptyDir:
+                medium: Memory
+              name: dshm
+            - name: secret-volume
+              secret:
+                secretName: medical-meadow-secret

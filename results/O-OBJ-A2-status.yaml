@@ -1,0 +1,119 @@
+apiVersion: training.distributedtraining.io/v1
+kind: DistributedTraining
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"training.distributedtraining.io/v1","kind":"DistributedTraining","metadata":{"annotations":{},"name":"distributedtraining-obj-a2","namespace":"default"},"spec":{"backend":"pytorch","dataset":{"name":"medalpaca/medical_meadow_medical_flashcards","promptWithInput":"Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.","promptWithoutInput":"Below is an instruction that describes a task. Write a response that appropriately completes the request.","split":"train"},"hardware":{"machineType":"c4-highcpu-8","type":"cpu"},"model":{"name":"BEE-spoke-data/smol_llama-101M-GQA","trainingScript":"/workspace/scripts/finetune.py"},"objective":{"maxCost":"5","maxNodes":10,"targetTime":"10m"},"optimization":{"bf16FullEval":true,"lora":{"alpha":8,"dropout":"0.1","enabled":true,"rank":4,"targetModules":["q_proj","v_proj","k_proj","o_proj","gate_proj","up_proj","down_proj"]},"mixedPrecision":"bf16"},"outputPVCName":"distributed-job-output-pvc","pytorchSpec":{"env":[{"name":"TRANSFORMERS_CACHE","value":"/mnt/output/hf-cache"},{"name":"HF_DATASETS_CACHE","value":"/mnt/output/hf-cache/datasets"},{"name":"HF_HOME","value":"/mnt/output/hf-cache"},{"name":"HF_HUB_DISABLE_XET","value":"1"},{"name":"LOGLEVEL","value":"INFO"},{"name":"LD_PRELOAD","value":"/usr/lib/x86_64-linux-gnu/libtcmalloc.so.4.5.9:/usr/local/lib/libiomp5.so"},{"name":"CCL_WORKER_COUNT","value":"1"}],"image":"jmukaj/cpu-fine-tuner-hf:v1.0.0","resources":{"limits":{"cpu":"4","memory":"10Gi"},"requests":{"cpu":"4","memory":"10Gi"}}},"training":{"batchSize":4,"ddpBackend":"gloo","ddpFindUnusedParameters":false,"epochs":1,"gradAccumulationSteps":1,"learningRate":"2e-5","loggingSteps":10,"maxGradNorm":"1.0","maxSteps":-1,"overwriteOutputDir":true,"saveStrategy":"epoch","saveTotalLimit":2,"useFastTokenizer":false,"validationSplit":"0.20","warmupSteps":50}}}
+  creationTimestamp: "2026-06-14T17:20:55Z"
+  finalizers:
+  - training.distributedtraining.io/cleanup
+  generation: 1
+  name: distributedtraining-obj-a2
+  namespace: default
+  resourceVersion: "1781458401403823021"
+  uid: 84f62f1f-187a-4a0c-95e0-bf223778e16d
+spec:
+  backend: pytorch
+  dataset:
+    name: medalpaca/medical_meadow_medical_flashcards
+    promptWithInput: Below is an instruction that describes a task, paired with an
+      input that provides further context. Write a response that appropriately completes
+      the request.
+    promptWithoutInput: Below is an instruction that describes a task. Write a response
+      that appropriately completes the request.
+    split: train
+  hardware:
+    gpuCount: 1
+    machineType: c4-highcpu-8
+    type: cpu
+  model:
+    cacheDir: /mnt/output/hf-cache
+    name: BEE-spoke-data/smol_llama-101M-GQA
+    trainingScript: /workspace/scripts/finetune.py
+  objective:
+    maxCost: "5"
+    maxNodes: 10
+    targetTime: 10m
+  optimization:
+    bf16FullEval: true
+    lora:
+      alpha: 8
+      dropout: "0.1"
+      enabled: true
+      rank: 4
+      targetModules:
+      - q_proj
+      - v_proj
+      - k_proj
+      - o_proj
+      - gate_proj
+      - up_proj
+      - down_proj
+    mixedPrecision: bf16
+  outputPVCName: distributed-job-output-pvc
+  pytorchSpec:
+    env:
+    - name: TRANSFORMERS_CACHE
+      value: /mnt/output/hf-cache
+    - name: HF_DATASETS_CACHE
+      value: /mnt/output/hf-cache/datasets
+    - name: HF_HOME
+      value: /mnt/output/hf-cache
+    - name: HF_HUB_DISABLE_XET
+      value: "1"
+    - name: LOGLEVEL
+      value: INFO
+    - name: LD_PRELOAD
+      value: /usr/lib/x86_64-linux-gnu/libtcmalloc.so.4.5.9:/usr/local/lib/libiomp5.so
+    - name: CCL_WORKER_COUNT
+      value: "1"
+    image: jmukaj/cpu-fine-tuner-hf:v1.0.0
+    masterReplicas: 1
+    resources:
+      limits:
+        cpu: "4"
+        memory: 10Gi
+      requests:
+        cpu: "4"
+        memory: 10Gi
+  restartPolicy: Never
+  training:
+    batchSize: 4
+    ddpBackend: gloo
+    ddpFindUnusedParameters: false
+    epochs: 1
+    gradAccumulationSteps: 1
+    learningRate: "2e-5"
+    loggingSteps: 10
+    maxGradNorm: "1.0"
+    maxSteps: -1
+    overwriteOutputDir: true
+    saveStrategy: epoch
+    saveTotalLimit: 2
+    useFastTokenizer: false
+    validationSplit: "0.20"
+    warmupSteps: 50
+status:
+  finishTime: "2026-06-14T17:32:21Z"
+  jobName: pj-distributedtraining-obj-a2
+  message: job complete — 4 metrics collected
+  phase: Succeeded
+  provisioningStartTime: "2026-06-14T17:21:15Z"
+  resolvedTopology:
+    estimatedCost: "0.4211"
+    estimatedTime: 8m57s
+    masterReplicas: 1
+    nodes: 7
+    workerReplicas: 6
+  results:
+    collectionTime: 3s
+    estimatedCostUSD: "0.4138"
+    metrics:
+      loss: "1.5835"
+      perplexity: "4.8720"
+      samplesPerSecond: "67.0010"
+      totalSamples: "27164"
+    provisioningTime: 1m22s
+    trainingTime: 8m46s
+  startTime: "2026-06-14T17:20:55Z"
+  trainingStartTime: "2026-06-14T17:22:58Z"

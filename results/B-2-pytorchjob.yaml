@@ -1,0 +1,173 @@
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: baseline-b-2
+  namespace: default
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          nodeSelector:
+            cloud.google.com/gke-nodepool: praktikum2-worker-node-pool
+          tolerations:
+            - key: reserved-pool
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+          volumes:
+            - name: dshm
+              emptyDir: {medium: Memory}
+            - name: output
+              persistentVolumeClaim: {claimName: distributed-job-output-pvc}
+          containers:
+            - name: pytorch
+              image: jmukaj/cpu-fine-tuner-hf:v1.0.0
+              imagePullPolicy: Always
+              command: ["torchrun"]
+              args:
+                - --nproc_per_node=1
+                - --nnodes=2
+                - --node_rank=$(RANK)
+                - --master_addr=$(MASTER_ADDR)
+                - --master_port=23456
+                - /workspace/scripts/finetune.py
+                - --model_name_or_path=BEE-spoke-data/smol_llama-101M-GQA
+                - --dataset_name=medalpaca/medical_meadow_medical_flashcards
+                - --dataset_split=train
+                - --dataset_cache_directory=/mnt/output/hf-cache/datasets
+                - --output_dir=/mnt/output/checkpoints
+                - --per_device_train_batch_size=4
+                - --per_device_eval_batch_size=4
+                - --learning_rate=2e-5
+                - --num_train_epochs=1
+                - --max_steps=-1
+                - --gradient_accumulation_steps=1
+                - --max_grad_norm=1.0
+                - --validation_split_percentage=0.20
+                - --warmup_steps=50
+                - --logging_steps=10
+                - --save_total_limit=2
+                - --save_strategy=epoch
+                - --overwrite_output_dir=True
+                - --do_train=True
+                - --do_eval=True
+                - --bf16=True
+                - --bf16_full_eval=True
+                - --use_lora=True
+                - --lora_rank=4
+                - --lora_alpha=8
+                - --lora_dropout=0.1
+                - --lora_target_modules=q_proj
+                - --lora_target_modules=v_proj
+                - --lora_target_modules=k_proj
+                - --lora_target_modules=o_proj
+                - --lora_target_modules=gate_proj
+                - --lora_target_modules=up_proj
+                - --lora_target_modules=down_proj
+                - --no_cuda=True
+                - --ddp_backend=gloo
+                - --ddp_find_unused_parameters=False
+                - --use_fast_tokenizer=False
+                - "--prompt_with_input=Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request."
+                - "--prompt_without_input=Below is an instruction that describes a task. Write a response that appropriately completes the request."
+              env:
+                - {name: TRANSFORMERS_CACHE,   value: /mnt/output/hf-cache}
+                - {name: HF_DATASETS_CACHE,    value: /mnt/output/hf-cache/datasets}
+                - {name: HF_HOME,              value: /mnt/output/hf-cache}
+                - {name: HF_HUB_DISABLE_XET,   value: "1"}
+                - {name: LOGLEVEL,             value: INFO}
+                - {name: LD_PRELOAD,           value: "/usr/lib/x86_64-linux-gnu/libtcmalloc.so.4.5.9:/usr/local/lib/libiomp5.so"}
+                - {name: CCL_WORKER_COUNT,     value: "1"}
+              resources:
+                requests: {cpu: "4", memory: "10Gi"}
+                limits:   {cpu: "4", memory: "10Gi"}
+              volumeMounts:
+                - {name: dshm,   mountPath: /dev/shm}
+                - {name: output, mountPath: /mnt/output}
+              securityContext: {allowPrivilegeEscalation: false}
+    Worker:
+      replicas: 1                 # master=1 + worker=1 = 2 total nodes
+      restartPolicy: OnFailure
+      template:
+        spec:
+          nodeSelector:
+            cloud.google.com/gke-nodepool: praktikum2-worker-node-pool
+          tolerations:
+            - key: reserved-pool
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+          volumes:
+            - name: dshm
+              emptyDir: {medium: Memory}
+            - name: output
+              persistentVolumeClaim: {claimName: distributed-job-output-pvc}
+          containers:
+            - name: pytorch
+              image: jmukaj/cpu-fine-tuner-hf:v1.0.0
+              imagePullPolicy: Always
+              command: ["torchrun"]
+              args:
+                - --nproc_per_node=1
+                - --nnodes=2
+                - --node_rank=$(RANK)
+                - --master_addr=$(MASTER_ADDR)
+                - --master_port=23456
+                - /workspace/scripts/finetune.py
+                - --model_name_or_path=BEE-spoke-data/smol_llama-101M-GQA
+                - --dataset_name=medalpaca/medical_meadow_medical_flashcards
+                - --dataset_split=train
+                - --dataset_cache_directory=/mnt/output/hf-cache/datasets
+                - --output_dir=/mnt/output/checkpoints
+                - --per_device_train_batch_size=4
+                - --per_device_eval_batch_size=4
+                - --learning_rate=2e-5
+                - --num_train_epochs=1
+                - --max_steps=-1
+                - --gradient_accumulation_steps=1
+                - --max_grad_norm=1.0
+                - --validation_split_percentage=0.20
+                - --warmup_steps=50
+                - --logging_steps=10
+                - --save_total_limit=2
+                - --save_strategy=epoch
+                - --overwrite_output_dir=True
+                - --do_train=True
+                - --do_eval=True
+                - --bf16=True
+                - --bf16_full_eval=True
+                - --use_lora=True
+                - --lora_rank=4
+                - --lora_alpha=8
+                - --lora_dropout=0.1
+                - --lora_target_modules=q_proj
+                - --lora_target_modules=v_proj
+                - --lora_target_modules=k_proj
+                - --lora_target_modules=o_proj
+                - --lora_target_modules=gate_proj
+                - --lora_target_modules=up_proj
+                - --lora_target_modules=down_proj
+                - --no_cuda=True
+                - --ddp_backend=gloo
+                - --ddp_find_unused_parameters=False
+                - --use_fast_tokenizer=False
+                - "--prompt_with_input=Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request."
+                - "--prompt_without_input=Below is an instruction that describes a task. Write a response that appropriately completes the request."
+              env:
+                - {name: TRANSFORMERS_CACHE,   value: /mnt/output/hf-cache}
+                - {name: HF_DATASETS_CACHE,    value: /mnt/output/hf-cache/datasets}
+                - {name: HF_HOME,              value: /mnt/output/hf-cache}
+                - {name: HF_HUB_DISABLE_XET,   value: "1"}
+                - {name: LOGLEVEL,             value: INFO}
+                - {name: LD_PRELOAD,           value: "/usr/lib/x86_64-linux-gnu/libtcmalloc.so.4.5.9:/usr/local/lib/libiomp5.so"}
+                - {name: CCL_WORKER_COUNT,     value: "1"}
+              resources:
+                requests: {cpu: "4", memory: "10Gi"}
+                limits:   {cpu: "4", memory: "10Gi"}
+              volumeMounts:
+                - {name: dshm,   mountPath: /dev/shm}
+                - {name: output, mountPath: /mnt/output}
+              securityContext: {allowPrivilegeEscalation: false}

@@ -1,0 +1,68 @@
+apiVersion: training.distributedtraining.io/v1
+kind: DistributedTraining
+metadata:
+  name: distributedtraining-obj-b
+  namespace: default
+spec:
+  backend: pytorch
+  hardware:
+    type: cpu
+    machineType: "c4-highcpu-8"
+  objective:
+    targetTime: "7m"
+    maxCost: "5"
+    maxNodes: 15
+  outputPVCName: distributed-job-output-pvc
+  model:
+    name: BEE-spoke-data/smol_llama-101M-GQA
+    trainingScript: /workspace/scripts/finetune.py
+  dataset:
+    name: medalpaca/medical_meadow_medical_flashcards
+    split: train
+    promptWithInput: "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request."
+    promptWithoutInput: "Below is an instruction that describes a task. Write a response that appropriately completes the request."
+  training:
+    batchSize: 4
+    learningRate: "2e-5"
+    epochs: 1
+    maxSteps: -1
+    gradAccumulationSteps: 1
+    maxGradNorm: "1.0"
+    validationSplit: "0.20"
+    warmupSteps: 50
+    loggingSteps: 10
+    saveTotalLimit: 2
+    saveStrategy: epoch
+    overwriteOutputDir: true
+    ddpBackend: gloo
+    ddpFindUnusedParameters: false
+    useFastTokenizer: false
+  optimization:
+    mixedPrecision: bf16
+    bf16FullEval: true
+    lora:
+      enabled: true
+      rank: 4
+      alpha: 8
+      dropout: "0.1"
+      targetModules: [q_proj, v_proj, k_proj, o_proj, gate_proj, up_proj, down_proj]
+  pytorchSpec:
+    image: jmukaj/cpu-fine-tuner-hf:v1.0.0
+    resources:
+      requests: {cpu: "4", memory: "10Gi"}
+      limits:   {cpu: "4", memory: "10Gi"}
+    env:
+      - name: TRANSFORMERS_CACHE
+        value: /mnt/output/hf-cache
+      - name: HF_DATASETS_CACHE
+        value: /mnt/output/hf-cache/datasets
+      - name: HF_HOME
+        value: /mnt/output/hf-cache
+      - name: HF_HUB_DISABLE_XET
+        value: "1"
+      - name: LOGLEVEL
+        value: INFO
+      - name: LD_PRELOAD
+        value: "/usr/lib/x86_64-linux-gnu/libtcmalloc.so.4.5.9:/usr/local/lib/libiomp5.so"
+      - name: CCL_WORKER_COUNT
+        value: "1"

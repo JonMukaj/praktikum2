@@ -1,0 +1,162 @@
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: {{ .Values.metadata.name }}-pytorchjob
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: {{ .Values.distributed.workers }}
+      restartPolicy: OnFailure
+      template:
+        spec:
+          securityContext:
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+          containers:
+            - name: pytorch
+              image: {{ .Values.image.name }}:{{ .Values.image.tag }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - torchrun
+                - --nproc_per_node=1
+                - {{ .Values.distributed.script }}
+                - --model_name_or_path
+                - "{{ .Values.distributed.modelNameOrPath }}"
+                - --dataset_name
+                - "{{ .Values.distributed.train.datasetName }}"
+                - --dataset_cache_directory
+                - "{{ .Values.envVars.hfDatasetsCache }}"
+                - --train_file
+                - "{{ .Values.distributed.train.dataFile }}"
+                - --prompt_with_input
+                - "{{ .Values.distributed.train.promptWithInput }}"
+                - --prompt_without_input
+                - "{{ .Values.distributed.train.promptWithoutInput }}"
+                - --per_device_train_batch_size
+                - "{{ .Values.distributed.train.perDeviceBatchSize }}"
+                - --per_device_eval_batch_size
+                - "{{ .Values.distributed.eval.perDeviceBatchSize }}"
+                - --max_grad_norm 
+                - "{{ .Values.distributed.train.maxGradNorm }}"
+                - --gradient_accumulation_steps
+                - "{{ .Values.distributed.train.gradientAccumulationSteps }}"
+                - --learning_rate
+                - "{{ .Values.distributed.train.learningRate }}"
+                - --num_train_epochs
+                - "{{ .Values.distributed.train.epochs }}"
+                - --max_steps
+                - "{{ .Values.distributed.train.maxSteps }}"
+                - --logging_steps
+                - "{{ .Values.distributed.train.loggingSteps }}"
+                - --save_total_limit
+                - "{{ .Values.distributed.train.saveTotalLimit }}"
+                - --warmup_steps
+                - "{{ .Values.distributed.train.warmupSteps }}"
+                - --output_dir
+                - "{{ .Values.distributed.train.outputDir }}"
+                - --validation_split_percentage
+                - "{{ .Values.distributed.eval.validationSplitPercentage }}"
+                - --log_level
+                - "{{ .Values.distributed.logLevel }}"
+                - --save_strategy
+                - "{{ .Values.distributed.train.saveStrategy }}"
+                - --ddp_backend
+                - "{{ .Values.distributed.train.ddpBackend }}"
+                - --ddp_find_unused_parameters
+                - "{{ .Values.distributed.train.ddpFindUnusedParameters }}"
+                - --use_lora
+                - "{{ .Values.distributed.train.useLora }}"
+                - --lora_rank
+                - "{{ .Values.distributed.train.loraRank }}"
+                - --lora_alpha
+                - "{{ .Values.distributed.train.loraAlpha }}"
+                - --lora_dropout
+                - "{{ .Values.distributed.train.loraDropout }}"
+                - --lora_target_modules
+                - "{{ .Values.distributed.train.loraTargetModules }}"
+                - --do_train
+                - "{{ .Values.distributed.doTrain }}"
+                - --do_eval
+                - "{{ .Values.distributed.doEval }}"
+                - --bf16
+                - "{{ .Values.distributed.train.bf16 }}"
+                - --bf16_full_eval
+                - "{{ .Values.distributed.eval.bf16_full_eval }}"
+                - --use_cpu
+                - "{{ .Values.distributed.train.useCpu }}"
+              env:
+              - name: HF_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.metadata.name }}-secret
+                    key: token
+              - name: HF_HUB_DISABLE_XET
+                value: "1"
+              {{- if .Values.envVars.ldPreload }}
+              - name: LD_PRELOAD
+                value: "{{ .Values.envVars.ldPreload }}"
+              {{- end }}
+              {{- if .Values.envVars.transformersCache }}
+              - name: TRANSFORMERS_CACHE
+                value: "{{ .Values.envVars.transformersCache }}"
+              {{- end }}
+              {{- if .Values.envVars.hfDatasetsCache }}
+              - name: HF_DATASETS_CACHE
+                value: "{{ .Values.envVars.hfDatasetsCache }}"
+              {{- end }}
+              {{- if .Values.envVars.logLevel }}
+              - name: LOGLEVEL
+                value: "{{ .Values.envVars.logLevel }}"
+              {{- end }}
+              resources:
+                {{- if or .Values.resources.cpuLimit .Values.resources.memoryLimit .Values.resources.gpuLimit}}
+                limits:
+                  {{- if .Values.resources.cpuLimit }}
+                  cpu: {{ .Values.resources.cpuLimit }}
+                  {{- end }}
+                  {{- if .Values.resources.memoryLimit }}
+                  memory: {{ .Values.resources.memoryLimit }}
+                  {{- end }}
+                  {{- if .Values.resources.gpuLimit }}
+                  nvidia.com/gpu: {{ .Values.resources.gpuLimit }}
+                  {{- end }}
+                {{- end }}
+                {{- if or .Values.resources.cpuRequest .Values.resources.memoryLimit .Values.resources.gpuLimit}}
+                requests:
+                  {{- if .Values.resources.cpuRequest }}
+                  cpu: {{ .Values.resources.cpuRequest }}
+                  {{- end }}
+                  {{- if .Values.resources.memoryRequest }}
+                  memory: {{ .Values.resources.memoryRequest }}
+                  {{- end }}
+                  {{- if .Values.resources.gpuLimit }}
+                  nvidia.com/gpu: {{ .Values.resources.gpuLimit }}
+                  {{- end }}
+                {{- end }}
+              volumeMounts:
+              - name: output-dir
+                mountPath: {{ .Values.storage.pvcMountPath }}
+              - mountPath: /dev/shm
+                name: dshm
+          restartPolicy: Never
+          {{- if .Values.resources.nodeSelectorLabel }}
+          nodeSelector:
+            {{ .Values.resources.nodeSelectorLabel }}: {{ .Values.resources.nodeSelectorValue }}
+          {{- end }}
+          tolerations:
+          {{- range .Values.resources.tolerations }}
+            - key: {{ .key }}
+              operator: {{ .operator }}
+              {{- if .value }}
+              value: {{ .value }}
+              {{- end }}
+              effect: {{ .effect }}
+          {{- end }}   
+          volumes:
+          - name: output-dir
+            persistentVolumeClaim:
+              claimName: {{ .Values.metadata.name }}-pvc
+          - name: dshm
+            emptyDir:
+              medium: Memory

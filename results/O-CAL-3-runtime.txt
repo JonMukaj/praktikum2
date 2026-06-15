@@ -1,0 +1,2 @@
+train_runtime_s = 872.7
+eval_runtime_s  = 83.6

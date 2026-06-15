@@ -1,0 +1,6 @@
+Creating node pool praktikum2-worker-node-pool...
+...........................................................................................................................................................................................................................................................................................................................................................................done.
+Created [https://container.googleapis.com/v1/projects/praktikum2-494215/zones/us-east1-d/clusters/praktikum2/nodePools/praktikum2-worker-node-pool].
+NAME                         MACHINE_TYPE  DISK_SIZE_GB  NODE_VERSION
+praktikum2-worker-node-pool  c4-highcpu-8  50            1.35.5-gke.1000000
+Waiting for 2 nodes in pool praktikum2-worker-node-pool to become Ready...

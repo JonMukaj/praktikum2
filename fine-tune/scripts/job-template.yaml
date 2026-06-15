@@ -1,0 +1,383 @@
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: {{ .Values.metadata.name }}-pytorchjob
+  namespace: {{ .Values.metadata.namespace }}
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - command:
+                - torchrun
+                - '--nproc_per_node=1'
+                - {{ .Values.distributed.script }}
+                - --model_name_or_path
+                - "{{ .Values.distributed.modelNameOrPath }}"
+                - --dataset_name
+                - "{{ .Values.distributed.train.datasetName }}"
+                - --dataset_cache_directory
+                - "{{ .Values.envVars.hfDatasetsCache }}"
+                - --train_file
+                - "{{ .Values.distributed.train.dataFile }}"
+                - --dataset_concatenation
+                - "{{ .Values.distributed.train.datasetConcatenation }}"
+                - --prompt_with_input
+                - "{{ .Values.distributed.train.promptWithInput }}"
+                - --prompt_without_input
+                - "{{ .Values.distributed.train.promptWithoutInput }}"
+                - --per_device_train_batch_size
+                - "{{ .Values.distributed.train.perDeviceBatchSize }}"
+                - --per_device_eval_batch_size
+                - "{{ .Values.distributed.eval.perDeviceBatchSize }}"
+                - --gradient_accumulation_steps
+                - "{{ .Values.distributed.train.gradientAccumulationSteps }}"
+                - --learning_rate
+                - "{{ .Values.distributed.train.learningRate }}"
+                - --num_train_epochs
+                - "{{ .Values.distributed.train.epochs }}"
+                - --max_steps
+                - "{{ .Values.distributed.train.maxSteps }}"
+                - --logging_steps
+                - "{{ .Values.distributed.train.loggingSteps }}"
+                - --save_total_limit
+                - "{{ .Values.distributed.train.saveTotalLimit }}"
+                - --output_dir
+                - "{{ .Values.distributed.train.outputDir }}"
+                - --validation_split_percentage
+                - "{{ .Values.distributed.eval.validationSplitPercentage }}"
+                - --log_level
+                - "{{ .Values.distributed.logLevel }}"
+                - --save_strategy
+                - "{{ .Values.distributed.train.saveStrategy }}"
+                - --ddp_find_unused_parameters
+                - "{{ .Values.distributed.train.ddpFindUnusedParameters }}"
+                - --ddp_backend
+                - "{{ .Values.distributed.train.ddpBackend }}"
+                - --use_fast_tokenizer
+                - "{{ .Values.distributed.train.useFastTokenizer }}"
+                - --use_lora
+                - "{{ .Values.distributed.train.useLora }}"
+                - --lora_rank
+                - "{{ .Values.distributed.train.loraRank }}"
+                - --lora_alpha
+                - "{{ .Values.distributed.train.loraAlpha }}"
+                - --lora_dropout
+                - "{{ .Values.distributed.train.loraDropout }}"
+                - --lora_target_modules
+                - "{{ .Values.distributed.train.loraTargetModules }}"
+                - --use_cpu
+                - "{{ .Values.distributed.train.useCpu }}"
+                - --overwrite_output_dir
+                - "{{ .Values.distributed.train.overwriteOutputDir }}"
+                - --do_train
+                - "{{ .Values.distributed.doTrain }}"
+                - --do_eval
+                - "{{ .Values.distributed.doEval }}"
+                - --bf16
+                - "{{ .Values.distributed.train.bf16 }}"
+                - --use_ipex
+                - "{{ .Values.distributed.train.useIpex }}"
+                - --do_benchmark
+                - "{{ .Values.distributed.doBenchmark }}"
+                - --benchmark_warmup
+                - "{{ .Values.distributed.benchmark.warmup }}"
+                - --benchmark_iterations
+                - "{{ .Values.distributed.benchmark.iterations }}"
+                - --benchmark_cores_per_instance
+                - "{{ .Values.distributed.benchmark.coresPerInstance }}"
+                - --benchmark_num_instances
+                - "{{ .Values.distributed.benchmark.numInstances }}"
+                - --do_quantize
+                - "{{ .Values.distributed.doQuantize }}"
+                - --peft_model_dir
+                - "{{ .Values.distributed.quantize.peftModelDir }}"
+                - --quantize_output_dir
+                - "{{ .Values.distributed.quantize.outputDir }}"
+                - --woq_bits
+                - "{{ .Values.distributed.quantize.woqBits }}"
+                - --woq_group_size
+                - "{{ .Values.distributed.quantize.woqGroupSize }}"
+                - --woq_scheme
+                - "{{ .Values.distributed.quantize.woqScheme }}"
+                - --woq_algo
+                - "{{ .Values.distributed.quantize.woqAlgo }}"
+              env:
+                - name: HF_HUB_DISABLE_XET
+                  value: "1"
+                - name: NCCL_SOCKET_IFNAME
+                  value: eth0
+                {{- if .Values.envVars.ldPreload }}
+                - name: LD_PRELOAD
+                  value: "{{ .Values.envVars.ldPreload }}"
+                {{- end }}
+                {{- if .Values.envVars.transformersCache }}
+                - name: TRANSFORMERS_CACHE
+                  value: "{{ .Values.envVars.transformersCache }}"
+                {{- end }}
+                {{- if .Values.envVars.hfDatasetsCache }}
+                - name: HF_DATASETS_CACHE
+                  value: "{{ .Values.envVars.hfDatasetsCache }}"
+                {{- end }}
+                {{- if .Values.envVars.hfHome }}
+                - name: HF_HOME
+                  value: "{{ .Values.envVars.hfHome }}"
+                {{- end }}
+                {{- if .Values.envVars.logLevel }}
+                - name: LOGLEVEL
+                  value: "{{ .Values.envVars.logLevel }}"
+                {{- end }}
+                # - name: CCL_WORKER_COUNT
+                #   value: '1'
+              image: {{ .Values.image.name }}:{{ .Values.image.tag }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              name: pytorch
+              resources:
+                {{- if or .Values.resources.cpuLimit .Values.resources.memoryLimit }}
+                limits:
+                  {{- if .Values.resources.cpuLimit }}
+                  cpu: {{ .Values.resources.cpuLimit }}
+                  {{- end }}
+                  {{- if .Values.resources.memoryLimit }}
+                  memory: {{ .Values.resources.memoryLimit }}
+                  {{- end }}
+                {{- end }}
+                {{- if or .Values.resources.cpuRequest .Values.resources.memoryRequest }}
+                requests:
+                  {{- if .Values.resources.cpuRequest }}
+                  cpu: {{ .Values.resources.cpuRequest }}
+                  {{- end }}
+                  {{- if .Values.resources.memoryRequest }}
+                  memory: {{ .Values.resources.memoryRequest }}
+                  {{- end }}
+                {{- end }}
+              volumeMounts:
+              - name: output-dir
+                mountPath: {{ .Values.storage.pvcMountPath }}
+              - mountPath: /dev/shm
+                name: dshm
+              {{- if .Values.secret.encodedToken}}
+              - name: secret-volume
+                mountPath: {{ .Values.envVars.hfHome }}
+                readOnly: true
+              {{- end }}
+          restartPolicy: Never
+          securityContext:
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+          {{- if .Values.resources.nodeSelectorLabel }}
+          nodeSelector:
+            {{ .Values.resources.nodeSelectorLabel }}: {{ .Values.resources.nodeSelectorValue }}
+          {{- end }}
+          tolerations:
+          {{- range .Values.resources.tolerations }}
+            - key: {{ .key }}
+              operator: {{ .operator }}
+              {{- if .value }}
+              value: {{ .value }}
+              {{- end }}
+              effect: {{ .effect }}
+          {{- end }}
+          volumes:
+          - name: output-dir
+            persistentVolumeClaim:
+              claimName: {{ .Values.metadata.name }}-pvc
+          - emptyDir:
+              medium: Memory
+            name: dshm
+          {{- if .Values.secret.encodedToken}}
+          - name: secret-volume
+            secret:
+              secretName: {{ .Values.metadata.name }}-secret
+          {{- end }}
+    Worker:
+      replicas: {{ .Values.distributed.workers }}
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - command:
+                - torchrun
+                - '--nproc_per_node=1'
+                - {{ .Values.distributed.script }}
+                - --model_name_or_path
+                - "{{ .Values.distributed.modelNameOrPath }}"
+                - --dataset_name
+                - "{{ .Values.distributed.train.datasetName }}"
+                - --dataset_cache_directory
+                - "{{ .Values.envVars.hfDatasetsCache }}"
+                - --train_file
+                - "{{ .Values.distributed.train.dataFile }}"
+                - --dataset_concatenation
+                - "{{ .Values.distributed.train.datasetConcatenation }}"
+                - --prompt_with_input
+                - "{{ .Values.distributed.train.promptWithInput }}"
+                - --prompt_without_input
+                - "{{ .Values.distributed.train.promptWithoutInput }}"
+                - --per_device_train_batch_size
+                - "{{ .Values.distributed.train.perDeviceBatchSize }}"
+                - --per_device_eval_batch_size
+                - "{{ .Values.distributed.eval.perDeviceBatchSize }}"
+                - --gradient_accumulation_steps
+                - "{{ .Values.distributed.train.gradientAccumulationSteps }}"
+                - --learning_rate
+                - "{{ .Values.distributed.train.learningRate }}"
+                - --num_train_epochs
+                - "{{ .Values.distributed.train.epochs }}"
+                - --max_steps
+                - "{{ .Values.distributed.train.maxSteps }}"
+                - --logging_steps
+                - "{{ .Values.distributed.train.loggingSteps }}"
+                - --save_total_limit
+                - "{{ .Values.distributed.train.saveTotalLimit }}"
+                - --output_dir
+                - "{{ .Values.distributed.train.outputDir }}"
+                - --validation_split_percentage
+                - "{{ .Values.distributed.eval.validationSplitPercentage }}"
+                - --log_level
+                - "{{ .Values.distributed.logLevel }}"
+                - --save_strategy
+                - "{{ .Values.distributed.train.saveStrategy }}"
+                - --ddp_find_unused_parameters
+                - "{{ .Values.distributed.train.ddpFindUnusedParameters }}"
+                - --ddp_backend
+                - "{{ .Values.distributed.train.ddpBackend }}"
+                - --use_fast_tokenizer
+                - "{{ .Values.distributed.train.useFastTokenizer }}"
+                - --use_lora
+                - "{{ .Values.distributed.train.useLora }}"
+                - --lora_rank
+                - "{{ .Values.distributed.train.loraRank }}"
+                - --lora_alpha
+                - "{{ .Values.distributed.train.loraAlpha }}"
+                - --lora_dropout
+                - "{{ .Values.distributed.train.loraDropout }}"
+                - --lora_target_modules
+                - "{{ .Values.distributed.train.loraTargetModules }}"
+                - --use_cpu
+                - "{{ .Values.distributed.train.useCpu }}"
+                - --overwrite_output_dir
+                - "{{ .Values.distributed.train.overwriteOutputDir }}"
+                - --do_train
+                - "{{ .Values.distributed.doTrain }}"
+                - --do_eval
+                - "{{ .Values.distributed.doEval }}"
+                - --bf16
+                - "{{ .Values.distributed.train.bf16 }}"
+                - --use_ipex
+                - "{{ .Values.distributed.train.useIpex }}"
+                - --do_benchmark
+                - "{{ .Values.distributed.doBenchmark }}"
+                - --benchmark_warmup
+                - "{{ .Values.distributed.benchmark.warmup }}"
+                - --benchmark_iterations
+                - "{{ .Values.distributed.benchmark.iterations }}"
+                - --benchmark_cores_per_instance
+                - "{{ .Values.distributed.benchmark.coresPerInstance }}"
+                - --benchmark_num_instances
+                - "{{ .Values.distributed.benchmark.numInstances }}"
+                - --do_quantize
+                - "{{ .Values.distributed.doQuantize }}"
+                - --peft_model_dir
+                - "{{ .Values.distributed.quantize.peftModelDir }}"
+                - --quantize_output_dir
+                - "{{ .Values.distributed.quantize.outputDir }}"
+                - --woq_bits
+                - "{{ .Values.distributed.quantize.woqBits }}"
+                - --woq_group_size
+                - "{{ .Values.distributed.quantize.woqGroupSize }}"
+                - --woq_scheme
+                - "{{ .Values.distributed.quantize.woqScheme }}"
+                - --woq_algo
+                - "{{ .Values.distributed.quantize.woqAlgo }}"
+              env:
+                - name: HF_HUB_DISABLE_XET
+                  value: "1"
+                - name: NCCL_SOCKET_IFNAME
+                  value: eth0
+                {{- if .Values.envVars.ldPreload }}
+                - name: LD_PRELOAD
+                  value: "{{ .Values.envVars.ldPreload }}"
+                {{- end }}
+                {{- if .Values.envVars.transformersCache }}
+                - name: TRANSFORMERS_CACHE
+                  value: "{{ .Values.envVars.transformersCache }}"
+                {{- end }}
+                {{- if .Values.envVars.hfDatasetsCache }}
+                - name: HF_DATASETS_CACHE
+                  value: "{{ .Values.envVars.hfDatasetsCache }}"
+                {{- end }}
+                {{- if .Values.envVars.hfHome }}
+                - name: HF_HOME
+                  value: "{{ .Values.envVars.hfHome }}"
+                {{- end }}
+                {{- if .Values.envVars.logLevel }}
+                - name: LOGLEVEL
+                  value: "{{ .Values.envVars.logLevel }}"
+                {{- end }}
+                # - name: CCL_WORKER_COUNT
+                #   value: '1'
+              image: {{ .Values.image.name }}:{{ .Values.image.tag }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              name: pytorch
+              resources:
+                {{- if or .Values.resources.cpuLimit .Values.resources.memoryLimit }}
+                limits:
+                  {{- if .Values.resources.cpuLimit }}
+                  cpu: {{ .Values.resources.cpuLimit }}
+                  {{- end }}
+                  {{- if .Values.resources.memoryLimit }}
+                  memory: {{ .Values.resources.memoryLimit }}
+                  {{- end }}
+                {{- end }}
+                {{- if or .Values.resources.cpuRequest .Values.resources.memoryRequest }}
+                requests:
+                  {{- if .Values.resources.cpuRequest }}
+                  cpu: {{ .Values.resources.cpuRequest }}
+                  {{- end }}
+                  {{- if .Values.resources.memoryRequest }}
+                  memory: {{ .Values.resources.memoryRequest }}
+                  {{- end }}
+                {{- end }}
+              volumeMounts:
+              - name: output-dir
+                mountPath: {{ .Values.storage.pvcMountPath }}
+              - mountPath: /dev/shm
+                name: dshm
+              {{- if .Values.secret.encodedToken}}
+              - name: secret-volume
+                mountPath: {{ .Values.envVars.hfHome }}
+                readOnly: true
+              {{- end }}
+          restartPolicy: Never
+          securityContext:
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+          {{- if .Values.resources.nodeSelectorLabel }}          
+          nodeSelector:
+            {{ .Values.resources.nodeSelectorLabel }}: {{ .Values.resources.nodeSelectorValue }}
+          {{- end }}
+          tolerations:
+          {{- range .Values.resources.tolerations }}
+            - key: {{ .key }}
+              operator: {{ .operator }}
+              {{- if .value }}
+              value: {{ .value }}
+              {{- end }}
+              effect: {{ .effect }}
+          {{- end }}
+          volumes:
+          - name: output-dir
+            persistentVolumeClaim:
+              claimName: {{ .Values.metadata.name }}-pvc
+          - emptyDir:
+              medium: Memory
+            name: dshm
+          {{- if .Values.secret.encodedToken}}
+          - name: secret-volume
+            secret:
+              secretName: {{ .Values.metadata.name }}-secret
+          {{- end }}
