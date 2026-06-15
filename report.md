@@ -161,8 +161,8 @@ the same metric set to a Prometheus Pushgateway so both approaches land on one d
 
 ## 4. Infrastructure and Deployment
 
-The full stack is provisioned with Terraform (`main.tf`, `network.tf`, `nfs.tf`,
-`grafana.tf`):
+The full stack is provisioned with Terraform (`infra/main.tf`, `infra/network.tf`, `infra/nfs.tf`,
+`infra/grafana.tf`):
 
 - VPC + subnet and a GKE cluster (`praktikum2`, zone `us-east1-d`) with a general-purpose
   node pool.
@@ -299,7 +299,7 @@ hand-picked constant with no notion of an objective.
 | Unit + e2e tests, CI | `operator/internal/controller/*_test.go`, `operator/test/e2e/`, `operator/.github/workflows/` |
 | Operator documentation | `operator/README.md` |
 | Training image + fine-tune workload (artifact from P1) | `fine-tune/` (CPU/GPU data-parallel `finetune.py`, Dockerfiles, Helm data-chart) |
-| Infrastructure as code | `main.tf`, `network.tf`, `nfs.tf`, `grafana.tf`, `*.tfvars` |
+| Infrastructure as code | `infra/main.tf`, `infra/network.tf`, `infra/nfs.tf`, `infra/grafana.tf`, `infra/*.tfvars` |
 | Monitoring | Grafana dashboard `operator/config/grafana/distributedtraining-dashboard.json`, Pushgateway baseline scripts `scripts/` |
 | Experiment plan | `experiments.md` |
 | Raw experiment data | `results/` (`*-timings.txt`, `*-metrics.txt`, `*-all_results.json`, `*-status.yaml`, pool logs) |

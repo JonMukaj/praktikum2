@@ -23,8 +23,8 @@ From a single `kubectl apply` of a `DistributedTraining` custom resource the ope
 | Path | Contents |
 | --- | --- |
 | [operator/](operator/) | Operator source code (Go, kubebuilder), CRDs, controllers, topology solver, Dockerfile, Makefile |
-| [main.tf](main.tf), [network.tf](network.tf), [nfs.tf](nfs.tf), [grafana.tf](grafana.tf), [provider.tf](provider.tf), [variables.tf](variables.tf) | Terraform to provision the GKE cluster, VPC, NFS, and Grafana |
-| [kubeflow.tfvars](kubeflow.tfvars), [cpu-small-kubeflow.tfvars](cpu-small-kubeflow.tfvars), [cpu-large-kubeflow.tfvars](cpu-large-kubeflow.tfvars), [gpu-kubeflow.tfvars](gpu-kubeflow.tfvars), [operator-cpu-small-kubeflow.tfvars](operator-cpu-small-kubeflow.tfvars) | Per-scenario Terraform variable files |
+| [infra/](infra/) | Terraform to provision the GKE cluster, VPC, NFS, and Grafana (`main.tf`, `network.tf`, `nfs.tf`, `grafana.tf`, `provider.tf`, `variables.tf`) |
+| [infra/*.tfvars](infra/) | Per-scenario Terraform variable files (`kubeflow`, `cpu-small`, `cpu-large`, `gpu`, `operator-cpu-small`) |
 | [fine-tune/](fine-tune/) | Training workload (Helm chart, PyTorchJob manifests, NFS data jobs, scripts) |
 | [scripts/](scripts/) | Baseline (manual workflow) automation scripts used in Praktikum 1 comparison |
 | [results/](results/) | Raw measurement output for all 8 experiment runs (timings, metrics, applied manifests, CR statuses) |
@@ -44,6 +44,7 @@ enabled, and quotas for the chosen machine type.
 
 ```bash
 gcloud auth login
+cd infra
 terraform init
 terraform plan  -var-file=kubeflow.tfvars
 terraform apply -var-file=kubeflow.tfvars
@@ -52,7 +53,7 @@ gcloud container clusters get-credentials praktikum1 \
 ```
 
 Use a different `*.tfvars` file to switch profiles (small CPU / large CPU / GPU /
-operator-only). See [variables.tf](variables.tf) for the full schema.
+operator-only). See [infra/variables.tf](infra/variables.tf) for the full schema.
 
 ### 2. Install Kubeflow
 
@@ -149,6 +150,7 @@ The operator provisions the node pool, submits the PyTorchJob, collects results 
 ### 6. Tear down
 
 ```bash
+cd infra
 terraform destroy -var-file=kubeflow.tfvars -refresh=false
 ```
 
