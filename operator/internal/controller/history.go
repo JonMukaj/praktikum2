@@ -254,16 +254,28 @@ func computeConfigHash(job *trainingv1.DistributedTraining) string {
 	var parts []string
 	switch backend {
 	case trainingv1.BackendPyTorch:
+		var modelName, datasetName, datasetSplit string
+		if job.Spec.Model != nil {
+			modelName = job.Spec.Model.Name
+		}
+		if job.Spec.Dataset != nil {
+			datasetName = job.Spec.Dataset.Name
+			datasetSplit = job.Spec.Dataset.Split
+		}
+		var tr trainingv1.TrainingSpec
+		if job.Spec.Training != nil {
+			tr = *job.Spec.Training
+		}
 		parts = []string{
 			string(backend),
 			machineType,
-			job.Spec.Model.Name,
-			job.Spec.Dataset.Name,
-			job.Spec.Dataset.Split,
-			strconv.Itoa(int(job.Spec.Training.BatchSize)),
-			strconv.Itoa(int(job.Spec.Training.GradAccumulationSteps)),
-			strconv.Itoa(int(job.Spec.Training.Epochs)),
-			job.Spec.Training.ValidationSplit,
+			modelName,
+			datasetName,
+			datasetSplit,
+			strconv.Itoa(int(tr.BatchSize)),
+			strconv.Itoa(int(tr.GradAccumulationSteps)),
+			strconv.Itoa(int(tr.Epochs)),
+			tr.ValidationSplit,
 		}
 	case trainingv1.BackendSpark:
 		ss := job.Spec.SparkSpec

@@ -434,12 +434,12 @@ type DistributedTrainingSpec struct {
 	// Model identifies the language model to fine-tune.
 	// Optional LLM overlay for pytorch; ignored by spark backend.
 	// +optional
-	Model ModelSpec `json:"model,omitempty"`
+	Model *ModelSpec `json:"model,omitempty"`
 
 	// Dataset identifies the Hugging Face dataset to train on.
 	// Optional LLM overlay; ignored by generic backends.
 	// +optional
-	Dataset DatasetSpec `json:"dataset,omitempty"`
+	Dataset *DatasetSpec `json:"dataset,omitempty"`
 
 	// Hardware selects the GKE node pool and machine type.
 	// Required for spark backend. For pytorch, hardware type is inferred
@@ -461,7 +461,7 @@ type DistributedTrainingSpec struct {
 	// Training holds the standard hyperparameters.
 	// Optional LLM overlay for pytorch backend.
 	// +optional
-	Training TrainingSpec `json:"training,omitempty"`
+	Training *TrainingSpec `json:"training,omitempty"`
 
 	// OutputPVCName is the name of the PVC for checkpoints and result files.
 	// Must exist before the job is created.
